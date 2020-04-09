@@ -1,65 +1,86 @@
 const express = require('express');
 const router = express.Router();
-const { check, validationResult } = require('express-validator');
-const User = require('../../models/User');
 const gravatar = require('gravatar');
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebstoken');
+const jwt = require('jsonwebtoken');
+const config = require('config');
+const { check, validationResult } = require('express-validator');
 
-//router.get('/', (req, res) => res.send('user route'));
+const User = require('../../models/User');
 
+// @route    POST api/users
+// @desc     Register user
+// @access   Public
 router.post(
   '/',
-  [//validator
-    check('name', 'name is required').not().isEmpty(),
-    check('email', 'valid email is required').isEmail(),
-    check('password', 'min length 6 characters').isLength({ min: 6 })
+  [
+    check('name', 'Name is required')
+      .not()
+      .isEmpty(),
+    check('email', 'Please include a valid email').isEmail(),
+    check(
+      'password',
+      'Please enter a password with 6 or more characters'
+    ).isLength({ min: 6 })
   ],
   async (req, res) => {
-    const errors = validationResult(req);//express-validator
+    const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() })//express//object//creates an array
-      //test with postman
+      return res.status(400).json({ errors: errors.array() });
     }
 
     const { name, email, password } = req.body;
-    //user registration
-    try {
 
+    try {
       let user = await User.findOne({ email });
+
       if (user) {
-        return res.status(400).json({ errors: [{ msg: 'user already exists' }] });//return will avoid some console not handled error
+        return res
+          .status(400)
+          .json({ errors: [{ msg: 'User already exists' }] });
       }
 
-      const avatar = gravatar.url(email,
-        {
-          s: '200',
-          r: 'pg',
-          d: 'mm'
-        });
-
-      user = new User({ //why cannot use const
-        name,
-        email,
-        password,
-        avatar
+      const avatar = gravatar.url(email, {
+        s: '200',
+        r: 'pg',
+        d: 'mm'
       });
 
-      const salt = await bcrypt.genSalt(10);//have to use dot here because didnt extract out
+      user = new User({
+        name,
+        email,
+        avatar,
+        password
+      });
+
+      const salt = await bcrypt.genSalt(10);
 
       user.password = await bcrypt.hash(password, salt);
 
       await user.save();
 
-      res.send('user registered');
+      const payload = {
+        user: {
+          id: user.id
+        }
+      };
 
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).send('server error');
-
+      jwt.sign(
+        payload,
+        config.get('jwtSecret'),
+        { expiresIn: 360000 },
+        (err, token) => {
+          if (err) throw err;
+          res.json({ token });
+        }
+      );
+    } catch (err) {
+      console.log(JSON.stringify(err));
+      console.error(err.message);
+      res.status(500).send('Server error');
     }
   }
-)
+);
 
 module.exports = router;
 

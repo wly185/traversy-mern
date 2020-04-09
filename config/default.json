@@ -1,3 +1,6 @@
 {
-  "mongoURI": "mongodb+srv://wongluyi:96688699@cluster0-zeceo.mongodb.net/test?retryWrites=true&w=majority"
+  "mongoURI": "mongodb+srv://wongluyi:96688699@cluster0-zeceo.mongodb.net/test?retryWrites=true&w=majority",
+  "jwtSecret": "mysecrettoken",
+  "githubClientId": "e6dd595c739e68f28f88",
+  "githubSecret": "8943ff9d39022622be8ceeffd794097bff2ad838"
 }
